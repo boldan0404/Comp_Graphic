@@ -124,26 +124,45 @@ glm::dvec3 RayTracer::traceRay(ray &r, const glm::dvec3 &thresh, int depth,
 
         // --- Refraction ---
         // Check if the material is transparent.
-        if (m.Trans() && depth > 0.0) {
-            // Get the index of refraction.
-            double eta = m.index(i);
-            glm::dvec3 refractDir;
-            // Compute the refracted ray direction using Snell's law.
-            if (refract(I, N, eta, refractDir)) { // See helper function below.
-                refractDir = glm::normalize(refractDir);
-                // Offset in the opposite direction to avoid self-intersection.
-                glm::dvec3 refractOrigin = r.at(i) - RAY_EPSILON * N;
-                // Construct the refraction ray.
-                ray refractRay(refractOrigin, refractDir, r.getAtten(), ray::REFRACTION);
-                double tRefract;
-                glm::dvec3 refractColor = traceRay(refractRay, thresh, depth - 1, tRefract);
-                
-                // Get the transparency (amount of refraction) coefficient.
-                //double transparency = m.Trans();
-                // Add the refraction contribution.
-                colorC += m.Trans() * refractColor;
-            }
+        if (m.Trans() && depth > 0) {
+        // Get the material's index of refraction.
+        double materialIndex = m.index(i);
+        
+        // Get normalized incident direction and surface normal.
+        glm::dvec3 I = glm::normalize(r.getDirection());
+        glm::dvec3 N = glm::normalize(i.getN());
+        
+        // Determine if the ray is entering or exiting the material.
+        // When entering, eta = air_index / material_index, and when exiting, eta = material_index / air_index.
+        // (We assume the surrounding medium is air with index 1.0.)
+        double eta;
+        glm::dvec3 effectiveN = N; // effective normal used for refraction calculation.
+        if (glm::dot(I, N) < 0) {
+            // Ray is entering the medium.
+            eta = 1.0 / materialIndex;
+        } else {
+            // Ray is leaving the medium; flip the normal.
+            effectiveN = -N;
+            eta = materialIndex;
         }
+        
+        // Compute the refracted direction using GLM's built-in function.
+        glm::dvec3 refractDir = glm::refract(I, effectiveN, eta);
+        
+        // Check for total internal reflection. glm::refract returns a zero vector when no refraction occurs.
+        if (glm::length(refractDir) > 1e-6) {
+            refractDir = glm::normalize(refractDir);
+            // Offset the ray origin slightly to avoid self-intersections.
+            glm::dvec3 refractOrigin = r.at(i) - RAY_EPSILON * N;
+            // Construct the refraction ray.
+            ray refractRay(refractOrigin, refractDir, r.getAtten(), ray::REFRACTION);
+            double tRefract;
+            glm::dvec3 refractColor = traceRay(refractRay, thresh, depth - 1, tRefract);
+            
+            // Add the refraction contribution to the final color.
+            colorC += m.Trans() * refractColor;
+        }
+      }
     }
   }   // const Material &m = i.getMaterial();
     // colorC = m.shade(scene.get(), r, i);
@@ -263,15 +282,42 @@ bool RayTracer::loadScene(const char *fn) {
   return true;
 }
 
-bool RayTracer::refract(const glm::dvec3 &I, const glm::dvec3 &N, double eta, glm::dvec3 &T) const {
-    // cosI is the cosine of the angle between I and N (note the minus sign).
-    double cosI = -glm::dot(N, I);
-    // Compute sin^2 of the transmitted angle using Snell's law.
-    double sinT2 = eta * eta * (1.0 - cosI * cosI);
-    if (sinT2 > 1.0)  // Total internal reflection.
+bool RayTracer::refract(const glm::dvec3 &I, const glm::dvec3 &N, double n, glm::dvec3 &T) const {
+    // I: incident direction (normalized)
+    // N: surface normal at the intersection (normalized, pointing outwards)
+    // n: index of refraction of the material (e.g., 1.5)
+    // T: computed refracted direction (if refraction occurs)
+    //
+    // We assume that the external medium (air) has index 1.0.
+    
+    // Compute the cosine of the angle between I and N.
+    double cosi = glm::dot(I, N);
+    double etai = 1.0, etat = n;
+    glm::dvec3 n_normal = N;  // This will be the effective normal.
+
+    // If cosi is positive, the ray is exiting the material.
+    if (cosi > 0) {
+        // Swap indices and flip the normal.
+        std::swap(etai, etat);
+        n_normal = -N;
+    } else {
+        // If the ray is entering, make cosi positive.
+        cosi = -cosi;
+    }
+    
+    // Compute the ratio of indices.
+    double eta = etai / etat;
+    
+    // Compute k = 1 - eta^2*(1 - cosi^2)
+    double k = 1.0 - eta * eta * (1.0 - cosi * cosi);
+    if (k < 0.0) {
+        // Total internal reflection; no refraction occurs.
         return false;
-    double cosT = sqrt(1.0 - sinT2);
-    T = eta * I + (eta * cosI - cosT) * N;
+    }
+    
+    // Compute the refracted direction.
+    T = eta * I + (eta * cosi - sqrt(k)) * n_normal;
+    T = glm::normalize(T);  // Ensure normalization.
     return true;
 }
 
@@ -334,7 +380,63 @@ int RayTracer::aaImage() {
   //
   // TIP: samples and aaThresh have been synchronized with TraceUI by
   //      RayTracer::traceSetup() function
-  return 0;
+  // Loop over every pixel in the image.
+    for (int j = 0; j < buffer_height; ++j) {
+        for (int i = 0; i < buffer_width; ++i) {
+            // Compute normalized coordinate bounds for the pixel.
+            // (Assumes x and y in [0,1] across the image.)
+            double x0 = static_cast<double>(i) / buffer_width;
+            double y0 = static_cast<double>(j) / buffer_height;
+            double x1 = static_cast<double>(i + 1) / buffer_width;
+            double y1 = static_cast<double>(j + 1) / buffer_height;
+            
+            // Use the 'samples' parameter (synchronized with TraceUI) as the maximum recursion depth.
+            int maxDepth = samples;
+            
+            // Compute the anti–aliased color for this pixel.
+            glm::dvec3 color = adaptiveSample(x0, y0, x1, y1, maxDepth);
+            color = glm::clamp(color, 0.0, 1.0);
+            
+            // Write the computed color into the buffer.
+            setPixel(i, j, color);
+        }
+    }
+    
+    // Return a status code (e.g., 1 indicates success).
+    return 1;
+}
+
+// Helper function: recursively sample a pixel region defined by the normalized coordinates 
+// [x0, x1] x [y0, y1].
+// 'depth' is the remaining recursion depth (typically initialized from 'samples').
+// 'aaThresh' is the minimum color difference required to trigger further subdivision.
+glm::dvec3 RayTracer::adaptiveSample(double x0, double y0, double x1, double y1, int depth) {
+    // Sample the four corners.
+    glm::dvec3 c00 = trace(x0, y0);
+    glm::dvec3 c10 = trace(x1, y0);
+    glm::dvec3 c01 = trace(x0, y1);
+    glm::dvec3 c11 = trace(x1, y1);
+    // Sample the center.
+    glm::dvec3 center = trace((x0 + x1) / 2.0, (y0 + y1) / 2.0);
+    
+    // Compute the average of the corner colors.
+    glm::dvec3 avgCorners = (c00 + c10 + c01 + c11) / 4.0;
+    
+    // If we've reached the maximum recursion depth or the color difference is small,
+    // return the average of the five samples (four corners and the center).
+    if (depth <= 0 || glm::length(center - avgCorners) < aaThresh) {
+        return (c00 + c10 + c01 + c11 + center) / 5.0;
+    }
+    
+    // Otherwise, subdivide the region into four quadrants.
+    double xm = (x0 + x1) / 2.0;
+    double ym = (y0 + y1) / 2.0;
+    glm::dvec3 s1 = adaptiveSample(x0, y0, xm, ym, depth - 1);
+    glm::dvec3 s2 = adaptiveSample(xm, y0, x1, ym, depth - 1);
+    glm::dvec3 s3 = adaptiveSample(x0, ym, xm, y1, depth - 1);
+    glm::dvec3 s4 = adaptiveSample(xm, ym, x1, y1, depth - 1);
+    
+    return (s1 + s2 + s3 + s4) / 4.0;
 }
 
 bool RayTracer::checkRender() {
