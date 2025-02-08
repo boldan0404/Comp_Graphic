@@ -119,15 +119,14 @@ glm::dvec3 RayTracer::traceRay(ray &r, const glm::dvec3 &thresh, int depth,
         glm::dvec3 reflectColor = traceRay(reflectRay, thresh, depth - 1, tReflect);
         
         // Get the reflectivity coefficient from the material (assumed to be in [0,1]).
-        double reflectivity = m.getReflectivity();
         // Add the reflection contribution.
-        colorC += reflectivity * reflectColor;
+        colorC += m.kr(i) * reflectColor;
 
         // --- Refraction ---
         // Check if the material is transparent.
-        if (m.getTransparency() > 0.0) {
+        if (m.Trans() && depth > 0.0) {
             // Get the index of refraction.
-            double eta = m.getIndexOfRefraction();
+            double eta = m.index(i);
             glm::dvec3 refractDir;
             // Compute the refracted ray direction using Snell's law.
             if (refract(I, N, eta, refractDir)) { // See helper function below.
@@ -140,9 +139,9 @@ glm::dvec3 RayTracer::traceRay(ray &r, const glm::dvec3 &thresh, int depth,
                 glm::dvec3 refractColor = traceRay(refractRay, thresh, depth - 1, tRefract);
                 
                 // Get the transparency (amount of refraction) coefficient.
-                double transparency = m.getTransparency();
+                //double transparency = m.Trans();
                 // Add the refraction contribution.
-                colorC += transparency * refractColor;
+                colorC += m.Trans() * refractColor;
             }
         }
     }
@@ -159,14 +158,20 @@ glm::dvec3 RayTracer::traceRay(ray &r, const glm::dvec3 &thresh, int depth,
     //       Check traceUI->cubeMap() to see if cubeMap is loaded
     //       and enabled.
 
-    CubeMap *cube = traceUI->cubeMap();
-    if (cube /* && cube->isEnabled() */) { // Uncomment & implement isEnabled() if desired.
-        colorC = cube->getColor(r);
-    } else {
+    // CubeMap *cube = traceUI->cubeMap();
+    // if (cube /* && cube->isEnabled() */) { // Uncomment & implement isEnabled() if desired.
+    //     colorC = cube->getColor(r);
+    // } else {
         // Fallback: return a default background color (e.g., light blue).
+        
+        if(traceUI->cubeMap()){
+        CubeMap* cube_map = traceUI->getCubeMap();
+        colorC = cube_map->getColor(r);			
+      } else{
         colorC = glm::dvec3(0, 0, 0);
+      }
     }
-  }
+  
 #if VERBOSE
   std::cerr << "== depth: " << depth + 1 << " done, returning: " << colorC
             << std::endl;
@@ -258,7 +263,7 @@ bool RayTracer::loadScene(const char *fn) {
   return true;
 }
 
-bool refract(const glm::dvec3 &I, const glm::dvec3 &N, double eta, glm::dvec3 &T) {
+bool RayTracer::refract(const glm::dvec3 &I, const glm::dvec3 &N, double eta, glm::dvec3 &T) const {
     // cosI is the cosine of the angle between I and N (note the minus sign).
     double cosI = -glm::dot(N, I);
     // Compute sin^2 of the transmitted angle using Snell's law.
