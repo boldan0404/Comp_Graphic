@@ -15,7 +15,8 @@ Material::~Material() {}
 
 // Apply the phong model to this point on the surface of the object, returning
 // the color of that point.
-glm::dvec3 Material::shade(Scene *scene, const ray &r, const isect &i) const {
+glm::dvec3 Material::shade(Scene *scene, const ray &r, const isect &i) const
+{
   // YOUR CODE HERE
 
   // For now, this method just returns the diffuse color of the object.
@@ -42,11 +43,52 @@ glm::dvec3 Material::shade(Scene *scene, const ray &r, const isect &i) const {
   // 		.
   // 		.
   // }
-  //return kd(i);
-  glm::dvec3 emissive = ke(i);  // Emissive term.
-  glm::dvec3 ambient  = ka(i);  // Ambient reflectance.
-  glm::dvec3 diffuse  = kd(i);  // Diffuse reflectance.
-  glm::dvec3 specular = ks(i);  // Specular reflectance.
+  // return kd(i);
+
+  // jerry code
+  // different color channels for that equation, different light source same equation?
+  // giving all the light sources, what will be the color at the interction point
+
+  // initialize the color
+  // glm::dvec3 colorC(0.0, 0.0, 0.0);
+  // glm::dvec3 kd = kd(i);
+  // glm::dvec3 ks = ks(i);
+  // double alpha = shininess(i);
+
+  // glm::dvec3 ambientTerm = ka(i) * scene->ambient();
+
+  // // intersection point
+  // glm::dvec3 p = r.at(i);
+
+  // // add the ambient term and emissive term
+  // colorC += ambientTerm + ke(i);
+
+  // for (const auto &pLight : scene->getAllLights())
+  // {
+  //   // diffuse term:
+  //   glm::dvec3 n = glm::normalize(i.getN());
+  //   glm::dvec3 l = glm::normalize(pLight->getDirection(p)); // l: from intersection point to light source
+  //   double lDotN = glm::max(glm::dot(l, n), 0.0);
+  //   glm::dvec3 diffuseTerm = kd * lDotN * pLight->getColor();
+
+  //   // specular term:
+  //   glm::dvec3 r = glm::normalize(-l + 2 * glm::dot(-l, n) * n);
+  //   glm::dvec3 v = -glm::normalize(r.getDirection());
+  //   double vDotR = glm::max(glm::dot(r, v), 0.0);
+  //   glm::dvec3 specularTerm = ks * pow(vDotR, alpha) * pLight->getColor();
+
+  //   // Attenuation
+  //   double distanceAtten = pLight->distanceAttenuation(p);
+  //   glm::dvec3 shadowAtten = pLight->shadowAttenuation(r, p);
+  //   glm::dvec3 attenuation = distanceAtten * shadowAtten;
+
+  //   colorC += (diffuseTerm + specularTerm) * attenuation;
+  // }
+  // return glm::clamp(colorC, 0.0, 1.0);
+  glm::dvec3 emissive = ke(i);        // Emissive term.
+  glm::dvec3 ambient = ka(i);         // Ambient reflectance.
+  glm::dvec3 diffuse = kd(i);         // Diffuse reflectance.
+  glm::dvec3 specular = ks(i);        // Specular reflectance.
   double shininessVal = shininess(i); // Shininess exponent.
 
   // ADDED CODE: Get ambient light intensity from the scene.
@@ -67,7 +109,8 @@ glm::dvec3 Material::shade(Scene *scene, const ray &r, const isect &i) const {
 
   // ADDED CODE: Loop over all lights in the scene.
   const auto &lights = scene->getAllLights();
-  for (const auto &light : lights) {
+  for (const auto &light : lights)
+  {
     // Compute the light direction (from the point to the light)
     glm::dvec3 L = glm::normalize(light->getDirection(p));
 
@@ -94,7 +137,7 @@ glm::dvec3 Material::shade(Scene *scene, const ray &r, const isect &i) const {
 
     // Combine the diffuse and specular contributions.
     glm::dvec3 lightContribution = lightColor * distAtten * shadowAtten *
-      (diffuse * diffFactor + specular * specFactor);
+                                   (diffuse * diffFactor + specular * specFactor);
 
     // Add the light's contribution to the result.
     result += lightContribution;
@@ -105,9 +148,11 @@ glm::dvec3 Material::shade(Scene *scene, const ray &r, const isect &i) const {
   return result;
 }
 
-TextureMap::TextureMap(string filename) {
+TextureMap::TextureMap(string filename)
+{
   data = readImage(filename.c_str(), width, height);
-  if (data.empty()) {
+  if (data.empty())
+  {
     width = 0;
     height = 0;
     string error("Unable to load texture map '");
@@ -117,7 +162,8 @@ TextureMap::TextureMap(string filename) {
   }
 }
 
-glm::dvec3 TextureMap::getMappedValue(const glm::dvec2 &coord) const {
+glm::dvec3 TextureMap::getMappedValue(const glm::dvec2 &coord) const
+{
   // YOUR CODE HERE
   //
   // In order to add texture mapping support to the
@@ -131,7 +177,8 @@ glm::dvec3 TextureMap::getMappedValue(const glm::dvec2 &coord) const {
   return glm::dvec3(1, 1, 1);
 }
 
-glm::dvec3 TextureMap::getPixelAt(int x, int y) const {
+glm::dvec3 TextureMap::getPixelAt(int x, int y) const
+{
   // YOUR CODE HERE
   //
   // In order to add texture mapping support to the
@@ -140,17 +187,21 @@ glm::dvec3 TextureMap::getPixelAt(int x, int y) const {
   return glm::dvec3(1, 1, 1);
 }
 
-glm::dvec3 MaterialParameter::value(const isect &is) const {
+glm::dvec3 MaterialParameter::value(const isect &is) const
+{
   if (0 != _textureMap)
     return _textureMap->getMappedValue(is.getUVCoordinates());
   else
     return _value;
 }
 
-double MaterialParameter::intensityValue(const isect &is) const {
-  if (0 != _textureMap) {
+double MaterialParameter::intensityValue(const isect &is) const
+{
+  if (0 != _textureMap)
+  {
     glm::dvec3 value(_textureMap->getMappedValue(is.getUVCoordinates()));
     return (0.299 * value[0]) + (0.587 * value[1]) + (0.114 * value[2]);
-  } else
+  }
+  else
     return (0.299 * _value[0]) + (0.587 * _value[1]) + (0.114 * _value[2]);
 }
