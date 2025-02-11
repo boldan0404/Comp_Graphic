@@ -45,7 +45,6 @@ glm::dvec3 Material::shade(Scene *scene, const ray &r, const isect &i) const
   // }
   // return kd(i);
 
-  // jerry code
   // different color channels for that equation, different light source same equation?
   // giving all the light sources, what will be the color at the interction point
 
@@ -73,7 +72,7 @@ glm::dvec3 Material::shade(Scene *scene, const ray &r, const isect &i) const
 
   //   // specular term:
   //   glm::dvec3 r = glm::normalize(-l + 2 * glm::dot(-l, n) * n);
-  //   glm::dvec3 v = -glm::normalize(r.getDirection());
+  //   glm::dvec3 v = glm::normalize(-r.getDirection());
   //   double vDotR = glm::max(glm::dot(r, v), 0.0);
   //   glm::dvec3 specularTerm = ks * pow(vDotR, alpha) * pLight->getColor();
 
@@ -115,8 +114,8 @@ glm::dvec3 Material::shade(Scene *scene, const ray &r, const isect &i) const
     glm::dvec3 L = glm::normalize(light->getDirection(p));
 
     // Compute the diffuse factor.
-    double diffFactor = glm::max(0.0, glm::dot(N, L));
-
+    // double diffFactor = glm::max(0.0, glm::dot(N, L));
+    double diffFactor = glm::abs(glm::dot(N, L));
     // Compute the reflection direction. Here, the standard formula is used:
     // R = 2*(N dot L)*N - L.
     glm::dvec3 R = glm::normalize(2.0 * glm::dot(N, L) * N - L);
