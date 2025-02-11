@@ -124,7 +124,7 @@ glm::dvec3 RayTracer::traceRay(ray &r, const glm::dvec3 &thresh, int depth,
 
         // --- Refraction ---
         // Check if the material is transparent.
-        if (m.Trans() && depth > 0) {
+        if (m.Trans() && depth >= 0) {
           // Get the material's index of refraction.
           double materialIndex = m.index(i);
           
@@ -148,14 +148,15 @@ glm::dvec3 RayTracer::traceRay(ray &r, const glm::dvec3 &thresh, int depth,
               eta = materialIndex;  // equivalent to materialIndex / 1.0
               entering = false;
           }
-          
+          double refracSquared = 1 - materialIndex * materialIndex * (1 - glm::dot(I, N) * glm::dot(I, N));
+
           // If the ray is nearly parallel or the material is nearly air, just continue in the same direction.
           if (fabs(glm::dot(I, N)) >= 0.999 || fabs(materialIndex - 1.0) < 1e-6) {
-              ray rRefract(r.at(i), I, r.getAtten(), ray::REFRACTION);
+              ray rRefract(r.at(i) + (entering ? -RAY_EPSILON : RAY_EPSILON) * N, I, r.getAtten(), ray::REFRACTION);
               double tRefract;
               glm::dvec3 refractColor = traceRay(rRefract, thresh, depth - 1, tRefract);
               colorC += m.kt(i) * refractColor;
-          } else {
+          } else if (refracSquared >0){
               // Compute the refracted direction.
               glm::dvec3 refractDir = glm::refract(I, effectiveN, eta);
               
@@ -188,6 +189,9 @@ glm::dvec3 RayTracer::traceRay(ray &r, const glm::dvec3 &thresh, int depth,
                   // Combine the refracted contribution.
                   colorC += attenuation * refractColor;
               }
+          }
+          else{
+            return colorC;
           }
       }
     }
@@ -408,62 +412,43 @@ int RayTracer::aaImage() {
   // TIP: samples and aaThresh have been synchronized with TraceUI by
   //      RayTracer::traceSetup() function
   // Loop over every pixel in the image.
-    for (int j = 0; j < buffer_height; ++j) {
-        for (int i = 0; i < buffer_width; ++i) {
-            // Compute normalized coordinate bounds for the pixel.
-            // (Assumes x and y in [0,1] across the image.)
-            double x0 = static_cast<double>(i) / buffer_width;
-            double y0 = static_cast<double>(j) / buffer_height;
-            double x1 = static_cast<double>(i + 1) / buffer_width;
-            double y1 = static_cast<double>(j + 1) / buffer_height;
-            
-            // Use the 'samples' parameter (synchronized with TraceUI) as the maximum recursion depth.
-            int maxDepth = samples;
-            
-            // Compute the anti–aliased color for this pixel.
-            glm::dvec3 color = adaptiveSample(x0, y0, x1, y1, maxDepth);
-            color = glm::clamp(color, 0.0, 1.0);
-            
-            // Write the computed color into the buffer.
-            setPixel(i, j, color);
-        }
-    }
-    
-    // Return a status code (e.g., 1 indicates success).
+  // If only one sample is specified, no anti-aliasing is needed.
+  if (samples <= 1)
     return 1;
-}
 
-// Helper function: recursively sample a pixel region defined by the normalized coordinates 
-// [x0, x1] x [y0, y1].
-// 'depth' is the remaining recursion depth (typically initialized from 'samples').
-// 'aaThresh' is the minimum color difference required to trigger further subdivision.
-glm::dvec3 RayTracer::adaptiveSample(double x0, double y0, double x1, double y1, int depth) {
-    // Sample the four corners.
-    glm::dvec3 c00 = trace(x0, y0);
-    glm::dvec3 c10 = trace(x1, y0);
-    glm::dvec3 c01 = trace(x0, y1);
-    glm::dvec3 c11 = trace(x1, y1);
-    // Sample the center.
-    glm::dvec3 center = trace((x0 + x1) / 2.0, (y0 + y1) / 2.0);
-    
-    // Compute the average of the corner colors.
-    glm::dvec3 avgCorners = (c00 + c10 + c01 + c11) / 4.0;
-    
-    // If we've reached the maximum recursion depth or the color difference is small,
-    // return the average of the five samples (four corners and the center).
-    if (depth <= 0 || glm::length(center - avgCorners) < aaThresh) {
-        return (c00 + c10 + c01 + c11 + center) / 5.0;
+  // Loop over each output pixel.
+  for (int j = 0; j < buffer_height; j++) {
+    for (int i = 0; i < buffer_width; i++) {
+      glm::dvec3 accumColor(0, 0, 0);
+
+      // For each pixel, subdivide it into a grid of sub-samples.
+      // 'samples' is the number of sub-samples per dimension.
+      for (int sy = 0; sy < samples; sy++) {
+        for (int sx = 0; sx < samples; sx++) {
+          // Compute normalized coordinates for the sub-sample.
+          // Each pixel covers [i/width, (i+1)/width] horizontally,
+          // and [j/height, (j+1)/height] vertically.
+          // We choose the center of each subpixel.
+          double subX = (i + (sx + 0.5) / samples) / buffer_width;
+          double subY = (j + (sy + 0.5) / samples) / buffer_height;
+          
+          // Trace a ray through the subpixel and accumulate its color.
+          accumColor += trace(subX, subY);
+        }
+      }
+      
+      // Average the colors from all sub-samples.
+      accumColor /= (samples * samples);
+      
+      // Write the computed color into the buffer.
+      unsigned char *pixel = buffer.data() + (i + j * buffer_width) * 3;
+      pixel[0] = (int)(255.0 * glm::clamp(accumColor[0], 0.0, 1.0));
+      pixel[1] = (int)(255.0 * glm::clamp(accumColor[1], 0.0, 1.0));
+      pixel[2] = (int)(255.0 * glm::clamp(accumColor[2], 0.0, 1.0));
     }
-    
-    // Otherwise, subdivide the region into four quadrants.
-    double xm = (x0 + x1) / 2.0;
-    double ym = (y0 + y1) / 2.0;
-    glm::dvec3 s1 = adaptiveSample(x0, y0, xm, ym, depth - 1);
-    glm::dvec3 s2 = adaptiveSample(xm, y0, x1, ym, depth - 1);
-    glm::dvec3 s3 = adaptiveSample(x0, ym, xm, y1, depth - 1);
-    glm::dvec3 s4 = adaptiveSample(xm, ym, x1, y1, depth - 1);
-    
-    return (s1 + s2 + s3 + s4) / 4.0;
+  }
+
+  return 1;
 }
 
 bool RayTracer::checkRender() {
