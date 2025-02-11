@@ -124,7 +124,7 @@ glm::dvec3 RayTracer::traceRay(ray &r, const glm::dvec3 &thresh, int depth,
 
         // --- Refraction ---
         // Check if the material is transparent.
-        if (m.Trans() && depth >= 0) {
+        if (m.Trans() && depth > 0) {
           // Get the material's index of refraction.
           double materialIndex = m.index(i);
           
