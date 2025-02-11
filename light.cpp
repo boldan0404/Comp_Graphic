@@ -14,56 +14,52 @@ double DirectionalLight::distanceAttenuation(const glm::dvec3 &) const {
 
 // Revised version for directional light shadow attenuation (recursive version)
 glm::dvec3 DirectionalLight::shadowAttenuation(const ray &r, const glm::dvec3 &p) const {
-  // For directional lights, the light direction is constant.
-  // getDirection(p) returns (-orientation).
+  // Compute the constant light direction (for a directional light, getDirection returns -orientation)
   glm::dvec3 lightDir = glm::normalize(getDirection(p));
-  
-  // Construct the initial shadow ray starting just off the point p.
+
+  // Construct the initial shadow ray starting slightly above p
   ray shadowRay(p + RAY_EPSILON * lightDir, lightDir, r.getAtten(), ray::SHADOW);
-  isect firstIntersection;
-  
-  // If no intersection is found, return the full light color.
-  if (!scene->intersect(shadowRay, firstIntersection)) {
+
+  // Record the first intersection along the shadow ray
+  isect firstHit;
+  if (scene->intersect(shadowRay, firstHit)) {
+    // If an intersection is found, check if the material is transparent
+    if (firstHit.getMaterial().Trans()) {
+      // Get the parametric distance to the first hit
+      double t_first = firstHit.getT();
+
+      // Save the current ray's direction and attenuation for clarity
+      glm::dvec3 currentDir = shadowRay.getDirection();
+      glm::dvec3 currentAtten = shadowRay.getAtten();
+
+      // Create a new shadow ray starting just beyond the first intersection
+      ray nextRay(shadowRay.at(t_first + RAY_EPSILON), glm::normalize(currentDir), currentAtten, ray::SHADOW);
+
+      // Record the next intersection along this new ray
+      isect secondHit;
+      if (scene->intersect(nextRay, secondHit)) {
+        double t_second = secondHit.getT();
+        // Compute the distance between the first hit point and the second hit point
+        double segmentLength = glm::distance(shadowRay.at(firstHit), nextRay.at(secondHit));
+        // Recursively compute the attenuation from just past the second hit
+        glm::dvec3 remainingAtten = shadowAttenuation(nextRay, nextRay.at(t_second + RAY_EPSILON));
+        // Multiply the local attenuation (based on the first hit) by the remaining attenuation
+        return glm::pow(firstHit.getMaterial().kt(firstHit), glm::dvec3(segmentLength)) * remainingAtten;
+      }
+      else {
+        // If no further intersection is found, compute attenuation from p to the first hit
+        double segmentLength = glm::distance(p, shadowRay.at(firstHit));
+        return glm::pow(firstHit.getMaterial().kt(firstHit), glm::dvec3(segmentLength)) * getColor();
+      }
+    }
+    // If the material is opaque, return zero light
+    return glm::dvec3(0.0, 0.0, 0.0);
+  }
+  else {
+    // If no intersection is found along the shadow ray, return full light
     return getColor();
   }
-  
-  // If an intersection is found, check if the intersected material is transparent.
-  if (firstIntersection.getMaterial().Trans()) {
-    // Retrieve the hit distance along the shadow ray.
-    double t_first = firstIntersection.getT();
-    
-    // Construct a new shadow ray starting just past the first intersection.
-    ray nextShadowRay(shadowRay.at(t_first + RAY_EPSILON),
-                      glm::normalize(shadowRay.getDirection()),
-                      shadowRay.getAtten(),
-                      ray::SHADOW);
-    
-    isect nextIntersection;
-    if (scene->intersect(nextShadowRay, nextIntersection)) {
-      double t_next = nextIntersection.getT();
-      // Compute the distance between the first and second intersection points.
-      double segmentLength = glm::distance(shadowRay.at(firstIntersection), nextShadowRay.at(nextIntersection));
-      
-      // Recursively compute the remaining attenuation beyond the second intersection.
-      glm::dvec3 remainingAtten = shadowAttenuation(nextShadowRay, nextShadowRay.at(t_next + RAY_EPSILON));
-      
-      // Multiply the local attenuation (using the material's kt raised to the segment length)
-      // by the remaining attenuation.
-      return glm::pow(firstIntersection.getMaterial().kt(firstIntersection),
-                      glm::dvec3(segmentLength)) * remainingAtten;
-    }
-    else {
-      // If no further intersection is found, compute the attenuation from p to the first hit.
-      double segmentLength = glm::distance(p, shadowRay.at(firstIntersection));
-      return glm::pow(firstIntersection.getMaterial().kt(firstIntersection),
-                      glm::dvec3(segmentLength)) * getColor();
-    }
-  }
-  
-  // If the first intersected material is opaque, the light is completely blocked.
-  return glm::dvec3(0.0, 0.0, 0.0);
 }
-
 
 
 glm::dvec3 DirectionalLight::getColor() const { return color; }
