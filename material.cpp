@@ -115,7 +115,14 @@ glm::dvec3 Material::shade(Scene *scene, const ray &r, const isect &i) const
 
     // Compute the diffuse factor.
     // double diffFactor = glm::max(0.0, glm::dot(N, L));
-    double diffFactor = glm::abs(glm::dot(N, L));
+    double diffFactor;
+    if (m.Trans()) {
+      // The material is transparent—process refraction.
+       diffFactor = glm::abs(glm::dot(N, L));
+  } else {
+      diffFactor = glm::max(0.0, glm::dot(N, L));
+  }
+    //double diffFactor = glm::abs(glm::dot(N, L));
     // Compute the reflection direction. Here, the standard formula is used:
     // R = 2*(N dot L)*N - L.
     glm::dvec3 R = glm::normalize(2.0 * glm::dot(N, L) * N - L);
@@ -147,11 +154,9 @@ glm::dvec3 Material::shade(Scene *scene, const ray &r, const isect &i) const
   return result;
 }
 
-TextureMap::TextureMap(string filename)
-{
+TextureMap::TextureMap(string filename) {
   data = readImage(filename.c_str(), width, height);
-  if (data.empty())
-  {
+  if (data.empty()) {
     width = 0;
     height = 0;
     string error("Unable to load texture map '");
@@ -161,8 +166,7 @@ TextureMap::TextureMap(string filename)
   }
 }
 
-glm::dvec3 TextureMap::getMappedValue(const glm::dvec2 &coord) const
-{
+glm::dvec3 TextureMap::getMappedValue(const glm::dvec2 &coord) const {
   // YOUR CODE HERE
   //
   // In order to add texture mapping support to the
@@ -176,8 +180,7 @@ glm::dvec3 TextureMap::getMappedValue(const glm::dvec2 &coord) const
   return glm::dvec3(1, 1, 1);
 }
 
-glm::dvec3 TextureMap::getPixelAt(int x, int y) const
-{
+glm::dvec3 TextureMap::getPixelAt(int x, int y) const {
   // YOUR CODE HERE
   //
   // In order to add texture mapping support to the
@@ -186,21 +189,17 @@ glm::dvec3 TextureMap::getPixelAt(int x, int y) const
   return glm::dvec3(1, 1, 1);
 }
 
-glm::dvec3 MaterialParameter::value(const isect &is) const
-{
+glm::dvec3 MaterialParameter::value(const isect &is) const {
   if (0 != _textureMap)
     return _textureMap->getMappedValue(is.getUVCoordinates());
   else
     return _value;
 }
 
-double MaterialParameter::intensityValue(const isect &is) const
-{
-  if (0 != _textureMap)
-  {
+double MaterialParameter::intensityValue(const isect &is) const {
+  if (0 != _textureMap) {
     glm::dvec3 value(_textureMap->getMappedValue(is.getUVCoordinates()));
     return (0.299 * value[0]) + (0.587 * value[1]) + (0.114 * value[2]);
-  }
-  else
+  } else
     return (0.299 * _value[0]) + (0.587 * _value[1]) + (0.114 * _value[2]);
 }
