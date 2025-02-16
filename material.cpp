@@ -115,6 +115,8 @@ glm::dvec3 Material::shade(Scene *scene, const ray &r, const isect &i) const
 
     // Compute the diffuse factor.
     // double diffFactor = glm::max(0.0, glm::dot(N, L));
+    const Material& m = i.getMaterial();
+
     double diffFactor;
     if (m.Trans()) {
       // The material is transparent—process refraction.
@@ -176,8 +178,42 @@ glm::dvec3 TextureMap::getMappedValue(const glm::dvec2 &coord) const {
   // [0, 1] x [0, 1] in 2-space to bitmap coordinates,
   // and use these to perform bilinear interpolation
   // of the values.
-
-  return glm::dvec3(1, 1, 1);
+  double u = coord[0];
+  double v = coord[1];
+  
+  // Map u,v to pixel space. Use (width-1) and (height-1) so that u==1 maps exactly to the last pixel.
+  double uPos = u * (width - 1);
+  double vPos = v * (height - 1);
+  
+  // Find the integer (floor) coordinates.
+  int x = static_cast<int>(floor(uPos));
+  int y = static_cast<int>(floor(vPos));
+  
+  // Compute the fractional part.
+  double s = uPos - x;
+  double t = vPos - y;
+  
+  // Clamp x and y so that x+1 and y+1 are in range.
+  if(x < 0) x = 0;
+  if(y < 0) y = 0;
+  if(x >= width - 1) x = width - 2;
+  if(y >= height - 1) y = height - 2;
+  
+  // Retrieve the four neighboring pixel values.
+  glm::dvec3 c00 = getPixelAt(x, y);
+  glm::dvec3 c10 = getPixelAt(x + 1, y);
+  glm::dvec3 c01 = getPixelAt(x, y + 1);
+  glm::dvec3 c11 = getPixelAt(x + 1, y + 1);
+  
+  // Bilinear interpolation:
+  // First interpolate horizontally for the top and bottom rows.
+  glm::dvec3 topInterp = (1.0 - s) * c00 + s * c10;
+  glm::dvec3 bottomInterp = (1.0 - s) * c01 + s * c11;
+  
+  // Then interpolate vertically between the two results.
+  glm::dvec3 finalColor = (1.0 - t) * topInterp + t * bottomInterp;
+  
+  return finalColor;
 }
 
 glm::dvec3 TextureMap::getPixelAt(int x, int y) const {
@@ -186,7 +222,12 @@ glm::dvec3 TextureMap::getPixelAt(int x, int y) const {
   // In order to add texture mapping support to the
   // raytracer, you need to implement this function.
 
-  return glm::dvec3(1, 1, 1);
+  const uint8_t *pixel = data.data() + (x + y * getWidth()) * 3;
+  double p = (double)pixel[0];
+  double p1 = (double)pixel[1];
+  double p2 = (double)pixel[2];
+	return glm::dvec3(p / 255.0, p1 / 255.0, p2 / 255.0);
+
 }
 
 glm::dvec3 MaterialParameter::value(const isect &is) const {
