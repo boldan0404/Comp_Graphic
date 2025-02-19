@@ -12,8 +12,28 @@ using namespace std;
 
 Trimesh::~Trimesh()
 {
+  clearFaceKdTree();
+
   for (auto f : faces)
     delete f;
+}
+
+void Trimesh::buildKdTreeForFaces() const {
+  if (faceKdTree != nullptr)
+      return; // already built
+
+  if (faces.empty())
+      return; // nothing to build
+
+  // Copy the face pointers into a vector.
+  std::vector<TrimeshFace*> faceList(faces.begin(), faces.end());
+  
+  // Parameters for kd-tree construction can be tuned.
+  int maxDepth = 16;
+  int minObjects = 4;
+  
+  // Build the kd-tree over the faces.
+  faceKdTree = new KdTree<TrimeshFace*>(faceList, maxDepth, minObjects);
 }
 
 // must add vertices, normals, and materials IN ORDER
@@ -58,24 +78,32 @@ const char *Trimesh::doubleCheck()
   return 0;
 }
 
-bool Trimesh::intersectLocal(ray &r, isect &i) const
-{
-  bool have_one = false;
-  for (auto face : faces)
-  {
-    isect cur;
-    if (face->intersectLocal(r, cur))
-    {
-      if (!have_one || (cur.getT() < i.getT()))
-      {
-        i = cur;
-        have_one = true;
+bool Trimesh::intersectLocal(ray &r, isect &i) const {
+  i.setT(1.0e308);
+
+  bool hit = false;
+  //Ensure the kd-tree is built.
+  if (faceKdTree == nullptr)
+      buildKdTreeForFaces();
+
+  if (faceKdTree != nullptr) {
+      // Use the kd-tree to test intersection against faces.
+      hit = faceKdTree->intersect(r, i);
+  } else {
+      // Fallback: linear search over faces.
+      for (auto face : faces) {
+          isect cur;
+          if (face->intersectLocal(r, cur)) {
+              if (!hit || cur.getT() < i.getT()) {
+                  i = cur;
+                  hit = true;
+              }
+          }
       }
-    }
-  }
-  if (!have_one)
-    i.setT(1000.0);
-  return have_one;
+ }
+  if (!hit)
+      i.setT(1000.0);
+  return hit;
 }
 
 bool TrimeshFace::intersect(ray &r, isect &i) const
