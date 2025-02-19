@@ -10,143 +10,6 @@
 
 using namespace std;
 
-Scene::BVHNode* Scene::buildBVH(std::vector<Geometry*>& objs, int depth) {
-  BVHNode* node = new BVHNode();
-
-  // Compute the bounding box for all objects in objs.
-  BoundingBox nodeBounds;
-  bool first = true;
-  for (auto obj : objs) {
-    if (first) {
-      nodeBounds = obj->getBoundingBox();
-      first = false;
-    } else {
-      nodeBounds.merge(obj->getBoundingBox());
-    }
-  }
-  node->bounds = nodeBounds;
-
-  // If few objects remain, make this a leaf node.
-  if (objs.size() <= 4) {
-    node->primitives = objs;
-    return node;
-}
-
-  // Choose splitting axis: axis with largest extent.
-  glm::dvec3 extent = nodeBounds.getMax() - nodeBounds.getMin();
-  int axis = 0;
-  if (extent[1] > extent[0])
-      axis = 1;
-  if (extent[2] > extent[axis])
-      axis = 2;
-
-  // Sort objects by the center of their bounding boxes along the chosen axis.
-  std::sort(objs.begin(), objs.end(), [axis](Geometry* a, Geometry* b) {
-      double aCenter = (a->getBoundingBox().getMin()[axis] + a->getBoundingBox().getMax()[axis]) * 0.5;
-      double bCenter = (b->getBoundingBox().getMin()[axis] + b->getBoundingBox().getMax()[axis]) * 0.5;
-      return aCenter < bCenter;
-  });
-
-  // Split objects into two halves.
-  size_t mid = objs.size() / 2;
-  std::vector<Geometry*> leftObjs(objs.begin(), objs.begin() + mid);
-  std::vector<Geometry*> rightObjs(objs.begin() + mid, objs.end());
-
-  node->left.reset(buildBVH(leftObjs, depth + 1));
-  node->right.reset(buildBVH(rightObjs, depth + 1));
-
-  return node;
-}
-
-void Scene::buildBVH() {
-  // Build the BVH using all objects in the scene.
-  std::vector<Geometry*> objs = objects;  // Make a copy so we can sort.
-  bvhRoot.reset(buildBVH(objs, 0));
-}
-
-// ---------------- BVH Intersection ----------------
-
-bool Scene::intersectBVH(BVHNode* node, ray &r, isect &hitRecord) const {
-  double tmin, tmax;
-  // If the ray does not hit this node's bounding box, then no intersections occur here.
-  if (!node->bounds.intersect(r, tmin, tmax))
-    return false;
-
-  // If this is a leaf node (no children), test all primitives.
-  if (!node->left && !node->right) {
-    bool hitSomething = false;
-    double closestT = std::numeric_limits<double>::max();
-    isect tempRecord;
-    for (auto obj : node->primitives) {
-      if (obj->intersect(r, tempRecord)) {
-        if (tempRecord.getT() < closestT) {
-          closestT = tempRecord.getT();
-          hitRecord = tempRecord;
-          hitSomething = true;
-        }
-      }
-    }
-    return hitSomething;
-  }
-
-  // Otherwise, this is an internal node.
-  bool hitLeft = false, hitRight = false;
-  isect leftRecord, rightRecord;
-  if (node->left)
-    hitLeft = intersectBVH(node->left.get(), r, leftRecord);
-  if (node->right)
-    hitRight = intersectBVH(node->right.get(), r, rightRecord);
-
-  // If both children are hit, choose the closer intersection.
-  if (hitLeft && hitRight) {
-    if (leftRecord.getT() < rightRecord.getT())
-      hitRecord = leftRecord;
-    else
-      hitRecord = rightRecord;
-    return true;
-  } else if (hitLeft) {
-    hitRecord = leftRecord;
-    return true;
-  } else if (hitRight) {
-    hitRecord = rightRecord;
-    return true;
-  }
-
-  return false;
-}
-
-
-// ---------------- Modified Scene::intersect ----------------
-
-bool Scene::intersect(ray &r, isect &i) const {
-  if (bvhRoot) {
-    bool hit = intersectBVH(bvhRoot.get(), r, i);
-    if (!hit)
-      i.setT(1000.0);
-    // if (TraceUI::m_debug) {
-    //   addToIntersectCache(std::make_pair(new ray(r), new isect(i)));
-    // }
-    return hit;
-  }
-  // Fallback: linear search over all objects.
-  bool hitAnything = false;
-  for (const auto &obj : objects) {
-    isect cur;
-    if (obj->intersect(r, cur)) {
-      if (!hitAnything || (cur.getT() < i.getT())) {
-        i = cur;
-        hitAnything = true;
-      }
-    }
-  }
-  if (!hitAnything)
-    i.setT(1000.0);
-  // if (TraceUI::m_debug) {
-  //   addToIntersectCache(std::make_pair(new ray(r), new isect(i)));
-  // }
-  return hitAnything;
-}
-
 bool Geometry::intersect(ray &r, isect &i) const {
   double tmin, tmax;
   if (hasBoundingBoxCapability() && !(bounds.intersect(r, tmin, tmax)))
@@ -237,6 +100,19 @@ Scene::~Scene() {
     delete light;
 }
 
+void Scene::buildKdTree() {
+  if (!objects.empty()) {
+      kdtree = new KdTree<Geometry*>(objects);
+      if (kdtree != nullptr)
+          std::cout << "KD-tree built with " << objects.size() << " objects." << std::endl;
+      else
+          std::cerr << "Error: KD-tree is null!" << std::endl;
+  } else {
+      kdtree = nullptr;
+      std::cout << "No objects to build KD-tree." << std::endl;
+  }
+}
+
 void Scene::add(Geometry *obj) {
   obj->ComputeBoundingBox();
   sceneBounds.merge(obj->getBoundingBox());
@@ -248,27 +124,27 @@ void Scene::add(Light *light) { lights.emplace_back(light); }
 
 // Get any intersection with an object.  Return information about the
 // intersection through the reference parameter.
-// bool Scene::intersect(ray &r, isect &i) const {
-//   double tmin = 0.0;
-//   double tmax = 0.0;
-//   bool have_one = false;
-//   for (const auto &obj : objects) {
-//     isect cur;
-//     if (obj->intersect(r, cur)) {
-//       if (!have_one || (cur.getT() < i.getT())) {
-//         i = cur;
-//         have_one = true;
-//       }
-//     }
-//   }
-//   if (!have_one)
-//     i.setT(1000.0);
-//   // if debugging,
-//   if (TraceUI::m_debug) {
-//     addToIntersectCache(std::make_pair(new ray(r), new isect(i)));
-//   }
-//   return have_one;
-// }
+bool Scene::intersect(ray &r, isect &i) const {
+  if (kdtree) {
+      // Initialize 'i' with a very large t value.
+      i.setT(1.0e308);
+      if (kdtree->intersect(r, i))
+          return true;
+      return false;
+  }
+  // Fallback: linear search over objects
+  bool hit = false;
+  for (const auto &obj : objects) {
+      isect temp;
+      if (obj->intersect(r, temp)) {
+          if (!hit || (temp.getT() < i.getT())) {
+              i = temp;
+              hit = true;
+          }
+      }
+  }
+  return hit;
+}
 
 TextureMap *Scene::getTexture(string name) {
   auto itr = textureCache.find(name);

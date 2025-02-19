@@ -170,11 +170,12 @@ public:
   // Violation of this assumption may lead to double free or corruption
   void add(Geometry *obj);
   void add(Light *light);
+  void Scene::buildKdTree();
+
 
   bool intersect(ray &r, isect &i) const;
-  void buildBVH(); // BVH ADDED HERE
 
-
+  
   auto beginLights() const { return lights.begin(); }
   auto endLights() const { return lights.end(); }
   const auto &getAllLights() const { return lights; }
@@ -229,23 +230,8 @@ private:
   // hasBoundingBoxCapability() are exempt from this requirement.
   BoundingBox sceneBounds;
 
- // KdTree<Geometry> *kdtree;
- class BVHNode {
-  public:
-    BoundingBox bounds;
-    std::unique_ptr<BVHNode> left;
-    std::unique_ptr<BVHNode> right;
-    std::vector<Geometry*> primitives; // Leaf if non-empty.
-  };
+  KdTree<Geometry*> *kdtree;
 
-  std::unique_ptr<BVHNode> bvhRoot; // Root of the BVH.
-
-  // Recursively build the BVH from a vector of Geometry pointers.
-  BVHNode* buildBVH(std::vector<Geometry*>& objs, int depth);
-
-  // Recursively traverse the BVH for intersection.
-  bool intersectBVH(BVHNode* node, ray &r, isect &i) const;
-  
   mutable std::mutex intersectionCacheMutex;
 
 public:
