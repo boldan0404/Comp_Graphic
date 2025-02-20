@@ -14,7 +14,8 @@
 #include <time.h>
 
 class Scene;
-class Pixel {
+class Pixel
+{
 public:
   Pixel(int i, int j, unsigned char *ptr) : ix(i), jy(j), value(ptr) {}
 
@@ -23,8 +24,8 @@ public:
   unsigned char *value;
 };
 
-
-class RayTracer {
+class RayTracer
+{
 public:
   RayTracer();
   ~RayTracer();
@@ -41,6 +42,7 @@ public:
   void traceImage(int w, int h);
   int aaImage();
   int RayTracer::adaptiveAntialiasImage(); //just added
+  glm::dvec3 adaptiveSample(double x0, double y0, double x1, double y1, int depth);
 
   bool checkRender();
   void waitRender();
@@ -52,9 +54,7 @@ public:
 
   void setReady(bool ready) { m_bBufferReady = ready; }
   bool isReady() const { return m_bBufferReady; }
-  
   bool refract(const glm::dvec3 &I, const glm::dvec3 &N, double eta, glm::dvec3 &T) const;
-
   const Scene &getScene() { return *scene; }
 
   bool stopTrace;
@@ -73,7 +73,6 @@ private:
   int block_size;
   double aaThresh;
   int samples;
-
 };
 
 #endif // __RAYTRACER_H__

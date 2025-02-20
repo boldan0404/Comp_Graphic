@@ -41,20 +41,24 @@ GraphicalUI::whoami(Fl_Menu_ *o) // from menu item back to UI itself
 
 //--------------------------------- Callback Functions
 //--------------------------------------------
-void GraphicalUI::cb_load_scene(Fl_Menu_ *o, void *) {
+void GraphicalUI::cb_load_scene(Fl_Menu_ *o, void *)
+{
   pUI = whoami(o);
 
   static char *lastFile = 0;
   // char *newfile = fl_file_chooser("Open Scene?", "*.ray", NULL);
   char *newfile = fl_file_chooser("Open Scene?", "*.json\t*.ray", NULL);
 
-  if (newfile != NULL) {
+  if (newfile != NULL)
+  {
     char buf[256];
 
-    if (pUI->raytracer->loadScene(newfile)) {
+    if (pUI->raytracer->loadScene(newfile))
+    {
       print(buf, "Ray <%s>", newfile);
       stopTracing(); // terminate the previous rendering
-    } else
+    }
+    else
       print(buf, "Ray <Not Loaded>");
 
     pUI->m_mainWindow->label(buf);
@@ -67,21 +71,25 @@ void GraphicalUI::cb_load_scene(Fl_Menu_ *o, void *) {
   }
 }
 
-void GraphicalUI::cb_load_cubemap(Fl_Menu_ *o, void *) {
+void GraphicalUI::cb_load_cubemap(Fl_Menu_ *o, void *)
+{
   pUI = whoami(o);
   pUI->m_cubeMapChooser->show();
 }
 
-void GraphicalUI::cb_save_image(Fl_Menu_ *o, void *) {
+void GraphicalUI::cb_save_image(Fl_Menu_ *o, void *)
+{
   pUI = whoami(o);
 
   char *savefile = fl_file_chooser("Save Image?", "*.bmp", "save.bmp");
-  if (savefile != NULL) {
+  if (savefile != NULL)
+  {
     pUI->m_traceGlWindow->saveImage(savefile);
   }
 }
 
-void GraphicalUI::cb_exit(Fl_Menu_ *o, void *) {
+void GraphicalUI::cb_exit(Fl_Menu_ *o, void *)
+{
   pUI = whoami(o);
 
   // terminate the rendering
@@ -93,7 +101,8 @@ void GraphicalUI::cb_exit(Fl_Menu_ *o, void *) {
   TraceUI::m_debug = false;
 }
 
-void GraphicalUI::cb_exit2(Fl_Widget *o, void *) {
+void GraphicalUI::cb_exit2(Fl_Widget *o, void *)
+{
   pUI = (GraphicalUI *)(o->user_data());
 
   // terminate the rendering
@@ -105,7 +114,8 @@ void GraphicalUI::cb_exit2(Fl_Widget *o, void *) {
   TraceUI::m_debug = false;
 }
 
-void GraphicalUI::cb_exit3(Fl_Widget *o, void *) {
+void GraphicalUI::cb_exit3(Fl_Widget *o, void *)
+{
   pUI = (GraphicalUI *)(o->user_data());
 
   // terminate the rendering
@@ -114,11 +124,13 @@ void GraphicalUI::cb_exit3(Fl_Widget *o, void *) {
   TraceUI::m_debug = false;
 }
 
-void GraphicalUI::cb_about(Fl_Menu_ *, void *) {
+void GraphicalUI::cb_about(Fl_Menu_ *, void *)
+{
   fl_message("RayTracer Project for CS384g.");
 }
 
-void GraphicalUI::cb_sizeSlides(Fl_Widget *o, void *) {
+void GraphicalUI::cb_sizeSlides(Fl_Widget *o, void *)
+{
   pUI = (GraphicalUI *)(o->user_data());
 
   // terminate the rendering so we don't get crashes
@@ -132,89 +144,117 @@ void GraphicalUI::cb_sizeSlides(Fl_Widget *o, void *) {
   //	pUI->raytracer->setReady(false);
 }
 
-void GraphicalUI::cb_depthSlides(Fl_Widget *o, void *) {
+void GraphicalUI::cb_depthSlides(Fl_Widget *o, void *)
+{
   ((GraphicalUI *)(o->user_data()))->m_nDepth = int(((Fl_Slider *)o)->value());
 }
 
-void GraphicalUI::cb_thresholdSlides(Fl_Widget *o, void *) {
+void GraphicalUI::cb_thresholdSlides(Fl_Widget *o, void *)
+{
   ((GraphicalUI *)(o->user_data()))->m_nThreshold =
       int(((Fl_Slider *)o)->value());
 }
 
-void GraphicalUI::cb_blockSlides(Fl_Widget *o, void *) {
+void GraphicalUI::cb_blockSlides(Fl_Widget *o, void *)
+{
   ((GraphicalUI *)(o->user_data()))->m_nBlockSize =
       int(((Fl_Slider *)o)->value());
 }
 
-void GraphicalUI::cb_refreshSlides(Fl_Widget *o, void *) {
+void GraphicalUI::cb_refreshSlides(Fl_Widget *o, void *)
+{
   ((GraphicalUI *)(o->user_data()))->refreshInterval =
       clock_t(((Fl_Slider *)o)->value());
 }
 
-void GraphicalUI::cb_threadSlides(Fl_Widget *o, void *) {
+void GraphicalUI::cb_threadSlides(Fl_Widget *o, void *)
+{
   pUI = (GraphicalUI *)(o->user_data());
   pUI->m_threads = (int)(((Fl_Slider *)o)->value());
 }
 
-void GraphicalUI::cb_aaSamplesSlides(Fl_Widget *o, void *) {
+// new add
+void GraphicalUI::cb_adaptiveThresholdSlides(Fl_Widget *o, void *)
+{
+  ((GraphicalUI *)(o->user_data()))->m_nAdaptiveThreshold =
+      int(((Fl_Slider *)o)->value());
+}
+
+void GraphicalUI::cb_aaSamplesSlides(Fl_Widget *o, void *)
+{
   ((GraphicalUI *)(o->user_data()))->m_nSuperSamples =
       int(((Fl_Slider *)o)->value());
 }
 
-void GraphicalUI::cb_aaThresholdSlides(Fl_Widget *o, void *) {
+void GraphicalUI::cb_aaThresholdSlides(Fl_Widget *o, void *)
+{
   ((GraphicalUI *)(o->user_data()))->m_nAaThreshold =
       int(((Fl_Slider *)o)->value());
 }
 
-void GraphicalUI::cb_kdTreeDepthSlides(Fl_Widget *o, void *) {
+void GraphicalUI::cb_kdTreeDepthSlides(Fl_Widget *o, void *)
+{
   ((GraphicalUI *)(o->user_data()))->m_nTreeDepth =
       int(((Fl_Slider *)o)->value());
 }
 
-void GraphicalUI::cb_kdLeafSizeSlides(Fl_Widget *o, void *) {
+void GraphicalUI::cb_kdLeafSizeSlides(Fl_Widget *o, void *)
+{
   ((GraphicalUI *)(o->user_data()))->m_nLeafSize =
       int(((Fl_Slider *)o)->value());
 }
 
-void GraphicalUI::cb_filterSlides(Fl_Widget *o, void *) {
+void GraphicalUI::cb_filterSlides(Fl_Widget *o, void *)
+{
   pUI = (GraphicalUI *)(o->user_data());
   pUI->m_nFilterWidth = int(((Fl_Slider *)o)->value());
 }
 
-void GraphicalUI::cb_debuggingDisplayCheckButton(Fl_Widget *o, void *) {
+void GraphicalUI::cb_debuggingDisplayCheckButton(Fl_Widget *o, void *)
+{
   pUI = (GraphicalUI *)(o->user_data());
   pUI->m_displayDebuggingInfo = (((Fl_Check_Button *)o)->value() == 1);
-  if (pUI->m_displayDebuggingInfo) {
+  if (pUI->m_displayDebuggingInfo)
+  {
     pUI->m_debuggingWindow->show();
     pUI->m_debug = true;
-  } else {
+  }
+  else
+  {
     pUI->m_debuggingWindow->hide();
     pUI->m_debug = false;
   }
 }
 
-void GraphicalUI::cb_ssCheckButton(Fl_Widget *o, void *) {
+void GraphicalUI::cb_ssCheckButton(Fl_Widget *o, void *)
+{
   pUI = (GraphicalUI *)(o->user_data());
   pUI->m_smoothshade = (((Fl_Check_Button *)o)->value() == 1);
 }
 
-void GraphicalUI::cb_shCheckButton(Fl_Widget *o, void *) {
+void GraphicalUI::cb_shCheckButton(Fl_Widget *o, void *)
+{
   pUI = (GraphicalUI *)(o->user_data());
   pUI->m_shadows = (((Fl_Check_Button *)o)->value() == 1);
 }
 
-void GraphicalUI::cb_bfCheckButton(Fl_Widget *o, void *) {
+void GraphicalUI::cb_bfCheckButton(Fl_Widget *o, void *)
+{
   pUI = (GraphicalUI *)(o->user_data());
   pUI->m_backface = (((Fl_Check_Button *)o)->value() == 1);
 }
 
-void GraphicalUI::cb_aaCheckButton(Fl_Widget *o, void *) {
+void GraphicalUI::cb_aaCheckButton(Fl_Widget *o, void *)
+{
   pUI = (GraphicalUI *)(o->user_data());
   pUI->m_antiAlias = (((Fl_Check_Button *)o)->value() == 1);
-  if (pUI->m_antiAlias) {
+  if (pUI->m_antiAlias)
+  {
     pUI->m_aaSamplesSlider->activate();
     pUI->m_aaThreshSlider->activate();
-  } else {
+  }
+  else
+  {
     pUI->m_aaSamplesSlider->deactivate();
     pUI->m_aaThreshSlider->deactivate();
   }
@@ -231,36 +271,44 @@ void GraphicalUI::cb_adaptiveAACheckButton(Fl_Widget* o, void *) //just added th
 	}
 }
 
-void GraphicalUI::cb_kdCheckButton(Fl_Widget *o, void *) {
+void GraphicalUI::cb_kdCheckButton(Fl_Widget *o, void *)
+{
   pUI = (GraphicalUI *)(o->user_data());
   pUI->m_kdTree = (((Fl_Check_Button *)o)->value() == 1);
-  if (pUI->m_kdTree) {
+  if (pUI->m_kdTree)
+  {
     pUI->m_treeDepthSlider->activate();
     pUI->m_leafSizeSlider->activate();
-  } else {
+  }
+  else
+  {
     pUI->m_treeDepthSlider->deactivate();
     pUI->m_leafSizeSlider->deactivate();
   }
 }
 
-void GraphicalUI::cb_cubeMapCheckButton(Fl_Widget *o, void *) {
+void GraphicalUI::cb_cubeMapCheckButton(Fl_Widget *o, void *)
+{
   pUI = (GraphicalUI *)(o->user_data());
   pUI->m_usingCubeMap =
       (((Fl_Check_Button *)o)->value() == 1 && pUI->getCubeMap() != nullptr);
   if (pUI->m_usingCubeMap)
     pUI->m_filterSlider->activate();
-  else {
+  else
+  {
     pUI->m_filterSlider->deactivate();
     ((Fl_Check_Button *)o)->value(0);
   }
 }
 
-void GraphicalUI::cb_render(Fl_Widget *o, void *) {
+void GraphicalUI::cb_render(Fl_Widget *o, void *)
+{
   char buffer[256];
 
   pUI = (GraphicalUI *)(o->user_data());
   stopTrace = false;
-  if (pUI->raytracer->sceneLoaded()) {
+  if (pUI->raytracer->sceneLoaded())
+  {
     int width = pUI->getSize();
     int height = (int)(width / pUI->raytracer->aspectRatio() + 0.5);
     pUI->m_traceGlWindow->resizeWindow(width, height);
@@ -273,7 +321,8 @@ void GraphicalUI::cb_render(Fl_Widget *o, void *) {
         std::chrono::duration<double, std::ratio<1>>(t_now - t_start).count();
     pUI->raytracer->traceImage(width, height);
     clock_t intervalMS = pUI->refreshInterval * 100;
-    while (!pUI->raytracer->checkRender()) {
+    while (!pUI->raytracer->checkRender())
+    {
       // check for input and refresh view every so often while
       // tracing
       std::this_thread::sleep_for(std::chrono::milliseconds(
@@ -283,7 +332,8 @@ void GraphicalUI::cb_render(Fl_Widget *o, void *) {
       t_now = std::chrono::high_resolution_clock::now();
       t_elapsed =
           std::chrono::duration<double, std::ratio<1>>(t_now - t_start).count();
-      if ((now - prev) / CLOCKS_PER_SEC * 1000 >= intervalMS) {
+      if ((now - prev) / CLOCKS_PER_SEC * 1000 >= intervalMS)
+      {
         print(buffer, "Time: %.2f sec, Rays: %u", t_elapsed,
               TraceUI::getCount());
         pUI->m_traceGlWindow->label(buffer);
@@ -292,7 +342,8 @@ void GraphicalUI::cb_render(Fl_Widget *o, void *) {
       }
       // look for input and refresh window
       Fl::wait(0);
-      if (Fl::damage()) {
+      if (Fl::damage())
+      {
         Fl::flush();
       }
     }
@@ -305,7 +356,8 @@ void GraphicalUI::cb_render(Fl_Widget *o, void *) {
     print(buffer, "Time: %.2f sec, Rays: %u, Aa: none", t_trace, imageRays);
     pUI->m_traceGlWindow->label(buffer);
     pUI->m_traceGlWindow->refresh();
-    if ((pUI->aaSwitch() || pUI->adaptiveSwitch()) && !stopTrace) { //just added
+    if ((pUI->aaSwitch() || pUI->adaptiveSwitch()) && !stopTrace)
+    {
       clock_t aaStart, aaTime;
       auto t_aaStart = std::chrono::high_resolution_clock::now();
       auto t_total =
@@ -316,7 +368,8 @@ void GraphicalUI::cb_render(Fl_Widget *o, void *) {
         aaPixels = pUI->raytracer->aaImage();
       else
         aaPixels = pUI->raytracer->adaptiveAntialiasImage();
-      while (!pUI->raytracer->checkRender()) {
+      while (!pUI->raytracer->checkRender())
+      {
         // check for input and refresh view every so
         // often while tracing
         std::this_thread::sleep_for(std::chrono::milliseconds(
@@ -329,7 +382,8 @@ void GraphicalUI::cb_render(Fl_Widget *o, void *) {
                 .count();
         t_total = std::chrono::duration<double, std::ratio<1>>(t_now - t_start)
                       .count();
-        if ((now - prev) / CLOCKS_PER_SEC * 1000 >= intervalMS) {
+        if ((now - prev) / CLOCKS_PER_SEC * 1000 >= intervalMS)
+        {
           print(buffer,
                 "Trace: %.2f, Aa: %.2f, Total: "
                 "%.2f, aaRays: %d",
@@ -340,7 +394,8 @@ void GraphicalUI::cb_render(Fl_Widget *o, void *) {
         }
         // look for input and refresh window
         Fl::wait(0);
-        if (Fl::damage()) {
+        if (Fl::damage())
+        {
           Fl::flush();
         }
       }
@@ -407,12 +462,14 @@ void GraphicalUI::cb_render(Fl_Widget *o, void *) {
   }
 }
 
-void GraphicalUI::cb_stop(Fl_Widget *o, void *) {
+void GraphicalUI::cb_stop(Fl_Widget *o, void *)
+{
   pUI = (GraphicalUI *)(o->user_data());
   stopTracing();
 }
 
-int GraphicalUI::run() {
+int GraphicalUI::run()
+{
   Fl::visual(FL_DOUBLE | FL_INDEX);
 
   m_mainWindow->show();
@@ -422,7 +479,8 @@ int GraphicalUI::run() {
 
 void GraphicalUI::alert(const string &msg) { fl_alert("%s", msg.c_str()); }
 
-void GraphicalUI::setRayTracer(RayTracer *tracer) {
+void GraphicalUI::setRayTracer(RayTracer *tracer)
+{
   TraceUI::setRayTracer(tracer);
   m_traceGlWindow->setRayTracer(tracer);
   m_debuggingWindow->m_debuggingView->setRayTracer(tracer);
@@ -447,7 +505,8 @@ Fl_Menu_Item GraphicalUI::menuitems[] = {
     {0, 0, 0, 0, 0, 0, 0, 0, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0}};
 
-void GraphicalUI::stopTracing() {
+void GraphicalUI::stopTracing()
+{
   stopTrace = true;
   pUI->raytracer->stopTrace = true;
 
@@ -457,7 +516,8 @@ void GraphicalUI::stopTracing() {
   //	while(!doneTrace)	Fl::wait();
 }
 
-GraphicalUI::GraphicalUI() : refreshInterval(10) {
+GraphicalUI::GraphicalUI() : refreshInterval(10)
+{
   // init.
   m_threads = std::max(std::thread::hardware_concurrency(), (unsigned)1);
 
@@ -564,6 +624,20 @@ GraphicalUI::GraphicalUI() : refreshInterval(10) {
   m_refreshSlider->align(FL_ALIGN_RIGHT);
   m_refreshSlider->callback(cb_threadSlides);
 
+  // new add
+  //  Install adaptive threshold slider
+  m_adaptiveThresholdSlider = new Fl_Value_Slider(10, 190, 180, 20, "Adaptive Threshold (x 0.001)");
+  m_adaptiveThresholdSlider->user_data((void *)(this));
+  m_adaptiveThresholdSlider->type(FL_HOR_NICE_SLIDER);
+  m_adaptiveThresholdSlider->labelfont(FL_COURIER);
+  m_adaptiveThresholdSlider->labelsize(12);
+  m_adaptiveThresholdSlider->minimum(0);
+  m_adaptiveThresholdSlider->maximum(1000);
+  m_adaptiveThresholdSlider->step(1);
+  m_adaptiveThresholdSlider->value(m_nAdaptiveThreshold);
+  m_adaptiveThresholdSlider->align(FL_ALIGN_RIGHT);
+  m_adaptiveThresholdSlider->callback(cb_adaptiveThresholdSlides);
+
   // install aasamples slider
   m_aaSamplesSlider =
       new Fl_Value_Slider(95, 205, 180, 20, "Pixel Samples\non Each Direction");
@@ -603,12 +677,11 @@ GraphicalUI::GraphicalUI() : refreshInterval(10) {
   m_aaCheckButton->callback(cb_aaCheckButton);
   m_aaCheckButton->value(m_antiAlias);
 
-
   m_adaptiveAACheckButton = new Fl_Check_Button(140, 419, 80, 20, "Adaptive Antialias"); //this block just added
 	m_adaptiveAACheckButton->user_data((void*)(this));
 	m_adaptiveAACheckButton->callback(cb_adaptiveAACheckButton);
 	m_adaptiveAACheckButton->value(m_adaptive);
-
+  
   // install kdmaxdepth slider
   m_treeDepthSlider = new Fl_Value_Slider(95, 277, 180, 20, "Max Depth");
   m_treeDepthSlider->user_data((void *)(this)); // record self to be used by

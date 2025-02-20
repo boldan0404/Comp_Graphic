@@ -45,6 +45,9 @@ public:
   Fl_Slider *m_leafSizeSlider;
   Fl_Slider *m_filterSlider;
 
+  //new add
+  Fl_Slider *m_adaptiveThresholdSlider;
+
   Fl_Check_Button *m_debuggingDisplayCheckButton;
   Fl_Check_Button *m_aaCheckButton;
   Fl_Check_Button *m_adaptiveAACheckButton; //just added
@@ -100,6 +103,9 @@ private:
   static void cb_kdTreeDepthSlides(Fl_Widget *o, void *v);
   static void cb_kdLeafSizeSlides(Fl_Widget *o, void *v);
   static void cb_filterSlides(Fl_Widget *o, void *v);
+
+  // new add
+  static void cb_adaptiveThresholdSlides(Fl_Widget *o, void *v);
 
   static void cb_render(Fl_Widget *o, void *v);
   static void cb_stop(Fl_Widget *o, void *v);

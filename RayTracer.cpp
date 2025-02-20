@@ -85,6 +85,9 @@ glm::dvec3 RayTracer::traceRay(ray &r, const glm::dvec3 &thresh, int depth,
   std::cerr << "== current depth: " << depth << std::endl;
 #endif
 
+  // Get adaptive threshold from GUI slider
+  double adaptiveThreshold = traceUI->getAdaptiveThreshold();
+
   if (scene->intersect(r, i))
   {
     // YOUR CODE HERE
@@ -108,6 +111,7 @@ glm::dvec3 RayTracer::traceRay(ray &r, const glm::dvec3 &thresh, int depth,
     if (depth > 0)
     {
       // --- Reflection ---
+
       // Get the normalized surface normal at the intersection.
       glm::dvec3 N = glm::normalize(i.getN());
       // Get the normalized incident direction (from the ray).
@@ -117,7 +121,7 @@ glm::dvec3 RayTracer::traceRay(ray &r, const glm::dvec3 &thresh, int depth,
       reflectDir = glm::normalize(reflectDir);
 
       // Offset the intersection point slightly along the normal to avoid self-intersection.
-      glm::dvec3 reflectOrigin = r.at(i) + RAY_EPSILON * N;
+      glm::dvec3 reflectOrigin = r.at(i);
       // Construct a reflection ray.
       ray reflectRay(reflectOrigin, reflectDir, r.getAtten(), ray::REFLECTION);
 
@@ -127,7 +131,18 @@ glm::dvec3 RayTracer::traceRay(ray &r, const glm::dvec3 &thresh, int depth,
 
       // Get the reflectivity coefficient from the material (assumed to be in [0,1]).
       // Add the reflection contribution.
-      colorC += m.kr(i) * reflectColor;
+      glm::dvec3 reflecContrib = m.kr(i) * reflectColor;
+
+      // check for termination
+      if (glm::length(reflecContrib) < adaptiveThreshold)
+      {
+        // printf("invoke thisj \n");
+        return colorC;
+      }
+      else
+      {
+        colorC += reflecContrib;
+      }
 
       // --- Refraction ---
       // Check if the material is transparent.
@@ -205,21 +220,27 @@ glm::dvec3 RayTracer::traceRay(ray &r, const glm::dvec3 &thresh, int depth,
           // {
           //   printf("attenuation: %f\n", attenuation);
           // }
+
           double tRefract;
           glm::dvec3 refractColor = traceRay(refractRay, thresh, depth - 1, tRefract);
 
-          // Combine the refracted contribution.
-          colorC += attenuation * refractColor;
+          // // Combine the refracted contribution.
+          glm::dvec3 refractContrib = attenuation * refractColor;
+          if (glm::length(refractContrib) < adaptiveThreshold)
+          {
+            // printf("invoke thisj \n");
+            return colorC;
+          }
+          else
+          {
+            colorC += refractContrib;
+          }
+          // printf("totalContrib: %f\n", glm::length(totalContrib));
+          // printf("adaptiveThreshold: %f\n", adaptiveThreshold);
         }
-        // }
-        // else
-        // {
-        //   return colorC;
-        // }
       }
     }
-  } // const Material &m = i.getMaterial();
-    // colorC = m.shade(scene.get(), r, i);
+  }
   else
   {
     // No intersection. This ray travels to infinity, so we color
@@ -356,11 +377,10 @@ bool RayTracer::loadScene(const char *fn)
 
   if (!sceneLoaded())
     return false;
-  
-  int treeDepth = traceUI->getMaxDepth();  // or yourRayTracer->getKdTreeDepth();
-  int leafSize  = traceUI->getLeafSize();     // or yourRayTracer->getKdLeafSize();
-  scene->buildKdTree(treeDepth, leafSize);
 
+  int treeDepth = traceUI->getMaxDepth(); // or yourRayTracer->getKdTreeDepth();
+  int leafSize = traceUI->getLeafSize();  // or yourRayTracer->getKdLeafSize();
+  scene->buildKdTree(treeDepth, leafSize);
 
   return true;
 }
@@ -525,7 +545,6 @@ int RayTracer::aaImage()
 // - trace(double x, double y): a method that returns a glm::dvec3 color
 // - aaThresh: a threshold (either a member variable or defined constant)
 // Here, we use a maximum recursion depth of 5.
-// just added
 int RayTracer::adaptiveAntialiasImage() {
   std::cout << "doing stuff" << std::endl;  // Internal recursive lambda for adaptive sampling.
   auto sampleRecursive = [this](auto &self, double x0, double y0, double x1, double y1, int depth) -> glm::dvec3 {
@@ -581,7 +600,6 @@ int RayTracer::adaptiveAntialiasImage() {
   }
   return 0;
 }
-
 
 
 bool RayTracer::checkRender()

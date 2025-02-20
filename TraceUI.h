@@ -16,7 +16,8 @@ using std::string;
 class RayTracer;
 class CubeMap;
 
-class TraceUI {
+class TraceUI
+{
 public:
   TraceUI();
   virtual ~TraceUI();
@@ -53,32 +54,40 @@ public:
   bool internalReflection() const { return m_internalReflection; }
   bool backfaceSpecular() const { return m_backfaceSpecular; }
 
+  // new add
+  double getAdaptiveThreshold() const { return (double)m_nAdaptiveThreshold * 0.001; }
   // ray counter
-  static void addRays(int number, int ctr) {
+  static void addRays(int number, int ctr)
+  {
     if (ctr >= 0)
       rayCount[ctr] += number;
   }
-  static void addRay(int ctr) {
+  static void addRay(int ctr)
+  {
     if (ctr >= 0)
       rayCount[ctr]++;
   }
   static int getCount(int ctr) { return ctr < 0 ? -1 : rayCount[ctr]; }
-  static int getCount() {
+  static int getCount()
+  {
     int total = 0;
     for (int i = 0; i < m_threads; i++)
       total += rayCount[i];
     return total;
   }
-  static int resetCount(int ctr) {
+  static int resetCount(int ctr)
+  {
     if (ctr < 0)
       return -1;
     int temp = rayCount[ctr];
     rayCount[ctr] = 0;
     return temp;
   }
-  static int resetCount() {
+  static int resetCount()
+  {
     int total = 0;
-    for (int i = 0; i < m_threads; i++) {
+    for (int i = 0; i < m_threads; i++)
+    {
       total += rayCount[i];
       rayCount[i] = 0;
     }
@@ -104,6 +113,8 @@ protected:
   int m_nLeafSize = 10;     // target number of objects per leaf
   int m_nFilterWidth = 1;   // width of cubemap filter
 
+  // new add
+  int m_nAdaptiveThreshold = 0;     // Adaptive termination threshold
   static int rayCount[MAX_THREADS]; // Ray counter
 
   // Determines whether or not to show debugging information
@@ -118,7 +129,7 @@ protected:
   bool m_backface = true;      // cull backfaces?
   bool m_usingCubeMap = false; // render with cubemap
   bool m_internalReflection =
-      true; // Enable reflection inside a translucent object.
+      true;                        // Enable reflection inside a translucent object.
   bool m_backfaceSpecular = false; // Enable specular component even seeing
                                    // through the back of a translucent object.
 

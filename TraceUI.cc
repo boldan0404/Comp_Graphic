@@ -18,15 +18,19 @@ using Json = nlohmann::json;
 #include <fstream>
 #include <iostream>
 
-namespace {
-template <typename T> void load(Json &j, const string &field, T &target) {
-  // Do not change its value by default
-  target = j.value(field, target);
-}
+namespace
+{
+  template <typename T>
+  void load(Json &j, const string &field, T &target)
+  {
+    // Do not change its value by default
+    target = j.value(field, target);
+  }
 
 } // anonymous namespace
 
-TraceUI::TraceUI() {
+TraceUI::TraceUI()
+{
   for (unsigned int i = 0; i < MAX_THREADS; i++)
     rayCount[i] = 0;
 }
@@ -35,7 +39,8 @@ TraceUI::~TraceUI() {}
 
 void TraceUI::setCubeMap(CubeMap *cm) { cubemap.reset(cm); }
 
-void TraceUI::loadFromJson(const char *file) {
+void TraceUI::loadFromJson(const char *file)
+{
   std::ifstream fin(file);
   Json json;
   fin >> json;
@@ -56,6 +61,10 @@ void TraceUI::loadFromJson(const char *file) {
   load(json, "shadows", m_shadows);
   load(json, "smoothshade", m_smoothshade);
   load(json, "backface_culling", m_backface);
+
+  // new add
+  load(json, "adaptive_threshold", m_nAdaptiveThreshold);
+
   /*
    * Note for Students:
    * The following options are legacy from previous semesters.
@@ -67,38 +76,48 @@ void TraceUI::loadFromJson(const char *file) {
   load(json, "backface_specular", m_backfaceSpecular);
 }
 
-namespace {
-std::vector<string> image_exts = {".bmp", ".png"};
+namespace
+{
+  std::vector<string> image_exts = {".bmp", ".png"};
 
-const char *matcher[][2] = {
-    {"pos", "x"}, {"neg", "x"}, {"pos", "y"},
-    {"neg", "y"}, {"pos", "z"}, {"neg", "z"},
-};
+  const char *matcher[][2] = {
+      {"pos", "x"},
+      {"neg", "x"},
+      {"pos", "y"},
+      {"neg", "y"},
+      {"pos", "z"},
+      {"neg", "z"},
+  };
 } // namespace
 
 bool TraceUI::matchCubemapFiles(const string &one_cubemap_file,
-                                string matched_fn[6], string &pdir) {
+                                string matched_fn[6], string &pdir)
+{
   DIR *dp;
   struct dirent *ep;
   std::string fN = one_cubemap_file;
   pdir = fN.substr(0, fN.find_last_of("/"));
   dp = opendir(pdir.data());
 
-  if (dp == NULL) {
+  if (dp == NULL)
+  {
     std::cerr << "Couldn't open the directory " << pdir << std::endl;
     return false;
   }
   for (int i = 0; i < 6; i++)
     matched_fn[i].clear();
   int matched = 0;
-  while ((ep = readdir(dp))) {
+  while ((ep = readdir(dp)))
+  {
     std::string fn(ep->d_name);
     /*
      * Skip files with unrecognized extensions
      */
     bool ext_matched = false;
-    for (const auto &ext : image_exts) {
-      if (fn.find(ext) != string::npos) {
+    for (const auto &ext : image_exts)
+    {
+      if (fn.find(ext) != string::npos)
+      {
         std::cerr << fn << " matches " << ext << std::endl;
         ext_matched = true;
         break;
@@ -106,14 +125,16 @@ bool TraceUI::matchCubemapFiles(const string &one_cubemap_file,
     }
     if (!ext_matched)
       continue;
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 6; i++)
+    {
       auto pos0 = fn.find(matcher[i][0]);
       if (pos0 == std::string::npos)
         continue;
       auto pos1 = fn.find(matcher[i][1], pos0);
       if (pos1 == std::string::npos)
         continue;
-      if (!matched_fn[i].empty()) {
+      if (!matched_fn[i].empty())
+      {
         (void)closedir(dp);
         std::cerr << matcher[i][0] << matcher[i][1] << " matches "
                   << matched_fn[i] << " and " << fn
@@ -130,25 +151,32 @@ bool TraceUI::matchCubemapFiles(const string &one_cubemap_file,
       break;
   }
   (void)closedir(dp);
-  if (matched != 6) {
+  if (matched != 6)
+  {
     std::cerr << "Cannot locate all six cubemap files" << std::endl;
     return false;
   }
   return true;
 }
 
-void TraceUI::smartLoadCubemap(const string &file) {
+void TraceUI::smartLoadCubemap(const string &file)
+{
   string matched_fn[6];
   string pdir;
   bool matched = matchCubemapFiles(file, matched_fn, pdir);
-  if (matched) {
-    if (!getCubeMap()) {
+  if (matched)
+  {
+    if (!getCubeMap())
+    {
       setCubeMap(new CubeMap());
     }
-    try {
+    try
+    {
       for (int i = 0; i < 6; i++)
         cubemap->setNthMap(i, new TextureMap(pdir + "/" + matched_fn[i]));
-    } catch (TextureMapException &xcpt) {
+    }
+    catch (TextureMapException &xcpt)
+    {
       cubemap.reset();
       std::cerr << xcpt.message() << std::endl;
       return;
