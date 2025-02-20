@@ -27,14 +27,15 @@ void Trimesh::buildKdTreeForFaces() const {
 
   // Copy the face pointers into a vector.
   std::vector<TrimeshFace*> faceList(faces.begin(), faces.end());
-  
-  // Parameters for kd-tree construction can be tuned.
-  int maxDepth = 16;
-  int minObjects = 4;
-  
+
+  // Retrieve kd-tree parameters from TraceUI (or RayTracer)
+  int maxDepth = traceUI->getMaxDepth();  // e.g., value from the slider
+  int minObjects = traceUI->getLeafSize();   // e.g., value from the slider
+
   // Build the kd-tree over the faces.
   faceKdTree = new KdTree<TrimeshFace*>(faceList, maxDepth, minObjects);
 }
+
 
 // must add vertices, normals, and materials IN ORDER
 void Trimesh::addVertex(const glm::dvec3 &v) { vertices.emplace_back(v); }

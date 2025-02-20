@@ -117,7 +117,7 @@ glm::dvec3 RayTracer::traceRay(ray &r, const glm::dvec3 &thresh, int depth,
       reflectDir = glm::normalize(reflectDir);
 
       // Offset the intersection point slightly along the normal to avoid self-intersection.
-      glm::dvec3 reflectOrigin = r.at(i);
+      glm::dvec3 reflectOrigin = r.at(i) + RAY_EPSILON * N;
       // Construct a reflection ray.
       ray reflectRay(reflectOrigin, reflectDir, r.getAtten(), ray::REFLECTION);
 
@@ -356,9 +356,12 @@ bool RayTracer::loadScene(const char *fn)
 
   if (!sceneLoaded())
     return false;
-
-  scene->buildKdTree();
   
+  int treeDepth = traceUI->getMaxDepth();  // or yourRayTracer->getKdTreeDepth();
+  int leafSize  = traceUI->getLeafSize();     // or yourRayTracer->getKdLeafSize();
+  scene->buildKdTree(treeDepth, leafSize);
+
+
   return true;
 }
 

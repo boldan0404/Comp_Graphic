@@ -170,7 +170,7 @@ public:
   // Violation of this assumption may lead to double free or corruption
   void add(Geometry *obj);
   void add(Light *light);
-  void Scene::buildKdTree();
+  void buildKdTree(int treeDepth, int leafSize);
 
 
   bool intersect(ray &r, isect &i) const;

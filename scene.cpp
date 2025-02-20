@@ -100,9 +100,9 @@ Scene::~Scene() {
     delete light;
 }
 
-void Scene::buildKdTree() {
+void Scene::buildKdTree(int treeDepth, int leafSize) {
   if (!objects.empty()) {
-      kdtree = new KdTree<Geometry*>(objects);
+      kdtree = new KdTree<Geometry*>(objects, treeDepth, leafSize);
       if (kdtree != nullptr)
           std::cout << "KD-tree built with " << objects.size() << " objects." << std::endl;
       else
@@ -112,6 +112,8 @@ void Scene::buildKdTree() {
       std::cout << "No objects to build KD-tree." << std::endl;
   }
 }
+
+
 
 void Scene::add(Geometry *obj) {
   obj->ComputeBoundingBox();

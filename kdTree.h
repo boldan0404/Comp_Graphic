@@ -17,7 +17,7 @@ public:
     // Constructs a KD-tree from the given list of objects.
     // maxDepth: maximum recursion depth.
     // minObjects: minimum number of objects in a leaf node.
-    KdTree(const std::vector<T>& objs, int maxDepth = 20, int minObjects = 4)
+    KdTree(const std::vector<T>& objs, int maxDepth, int minObjects)
         : maxDepth(maxDepth), minObjects(minObjects)
     {
         // Make a local copy since we will partition it.
