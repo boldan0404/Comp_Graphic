@@ -40,7 +40,7 @@ public:
 
   void traceImage(int w, int h);
   int aaImage();
-  glm::dvec3 adaptiveSample(double x0, double y0, double x1, double y1, int depth);
+  int RayTracer::adaptiveAntialiasImage();
 
   bool checkRender();
   void waitRender();

@@ -220,6 +220,17 @@ void GraphicalUI::cb_aaCheckButton(Fl_Widget *o, void *) {
   }
 }
 
+void GraphicalUI::cb_adaptiveAACheckButton(Fl_Widget* o, void *)
+{
+	pUI = (GraphicalUI *)(o->user_data());
+	pUI->m_adaptive = (((Fl_Check_Button*)o)->value() == 1);
+  if (pUI->m_adaptive) {
+		pUI->m_aaThreshSlider->activate();
+	}	else {
+		pUI->m_aaThreshSlider->deactivate();
+	}
+}
+
 void GraphicalUI::cb_kdCheckButton(Fl_Widget *o, void *) {
   pUI = (GraphicalUI *)(o->user_data());
   pUI->m_kdTree = (((Fl_Check_Button *)o)->value() == 1);
@@ -294,13 +305,17 @@ void GraphicalUI::cb_render(Fl_Widget *o, void *) {
     print(buffer, "Time: %.2f sec, Rays: %u, Aa: none", t_trace, imageRays);
     pUI->m_traceGlWindow->label(buffer);
     pUI->m_traceGlWindow->refresh();
-    if (pUI->aaSwitch() && !stopTrace) {
+    if ((pUI->aaSwitch() || pUI->adaptiveSwitch()) && !stopTrace) {
       clock_t aaStart, aaTime;
       auto t_aaStart = std::chrono::high_resolution_clock::now();
       auto t_total =
           std::chrono::duration<double, std::ratio<1>>(t_now - t_start).count();
       aaStart = now = prev = clock();
-      pUI->raytracer->aaImage();
+      int aaPixels = 0;
+      if(pUI->aaSwitch())
+        aaPixels = pUI->raytracer->aaImage();
+      else
+        aaPixels = pUI->raytracer->adaptiveAntialiasImage();
       while (!pUI->raytracer->checkRender()) {
         // check for input and refresh view every so
         // often while tracing
@@ -580,14 +595,19 @@ GraphicalUI::GraphicalUI() : refreshInterval(10) {
   m_aaThreshSlider->value(m_nAaThreshold);
   m_aaThreshSlider->align(FL_ALIGN_RIGHT);
   m_aaThreshSlider->callback(cb_aaThresholdSlides);
-  if (!m_antiAlias)
-    m_aaThreshSlider->deactivate();
+  if (!(m_antiAlias || m_adaptive)) m_aaThreshSlider->deactivate();
 
   // set up antialias checkbox
   m_aaCheckButton = new Fl_Check_Button(10, 221, 75, 20, "Antialias");
   m_aaCheckButton->user_data((void *)(this));
   m_aaCheckButton->callback(cb_aaCheckButton);
   m_aaCheckButton->value(m_antiAlias);
+
+
+  m_adaptiveAACheckButton = new Fl_Check_Button(140, 419, 80, 20, "Adaptive Antialias");
+	m_adaptiveAACheckButton->user_data((void*)(this));
+	m_adaptiveAACheckButton->callback(cb_adaptiveAACheckButton);
+	m_adaptiveAACheckButton->value(m_adaptive);
 
   // install kdmaxdepth slider
   m_treeDepthSlider = new Fl_Value_Slider(95, 277, 180, 20, "Max Depth");

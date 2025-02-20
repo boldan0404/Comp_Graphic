@@ -518,6 +518,72 @@ int RayTracer::aaImage()
   return 1;
 }
 
+// Add this method to your RayTracer class (in RayTracer.cpp).
+// This function assumes the existence of:
+// - buffer_width and buffer_height (image dimensions)
+// - buffer (an unsigned char vector holding the pixel data)
+// - trace(double x, double y): a method that returns a glm::dvec3 color
+// - aaThresh: a threshold (either a member variable or defined constant)
+// Here, we use a maximum recursion depth of 5.
+
+int RayTracer::adaptiveAntialiasImage() {
+  std::cout << "doing stuff" << std::endl;  // Internal recursive lambda for adaptive sampling.
+  auto sampleRecursive = [this](auto &self, double x0, double y0, double x1, double y1, int depth) -> glm::dvec3 {
+      // Sample the four corners.
+      glm::dvec3 c00 = trace(x0, y0);
+      glm::dvec3 c10 = trace(x1, y0);
+      glm::dvec3 c01 = trace(x0, y1);
+      glm::dvec3 c11 = trace(x1, y1);
+      // Sample the center.
+      double xm = (x0 + x1) * 0.5;
+      double ym = (y0 + y1) * 0.5;
+      glm::dvec3 cM = trace(xm, ym);
+
+      // Average the samples.
+      glm::dvec3 avg = (c00 + c10 + c01 + c11 + cM) / 5.0;
+
+      // Determine the maximum color difference from the average.
+      double diff = std::max({ glm::length(c00 - avg), glm::length(c10 - avg),
+                                glm::length(c01 - avg), glm::length(c11 - avg),
+                                glm::length(cM - avg) });
+
+      // If the color variation is small or we've reached the maximum depth, return the average.
+      if (diff < aaThresh || depth >= 5) {
+          return avg;
+      } else {
+          // Otherwise, subdivide the region into four quadrants.
+          glm::dvec3 q1 = self(self, x0, y0, xm, ym, depth + 1);
+          glm::dvec3 q2 = self(self, xm, y0, x1, ym, depth + 1);
+          glm::dvec3 q3 = self(self, x0, ym, xm, y1, depth + 1);
+          glm::dvec3 q4 = self(self, xm, ym, x1, y1, depth + 1);
+          return (q1 + q2 + q3 + q4) / 4.0;
+      }
+  };
+
+  // Loop over each pixel in the image buffer.
+  for (int j = 0; j < buffer_height; j++) {
+      for (int i = 0; i < buffer_width; i++) {
+          // Compute normalized coordinates for the current pixel.
+          double x0 = double(i) / double(buffer_width);
+          double y0 = double(j) / double(buffer_height);
+          double x1 = double(i + 1) / double(buffer_width);
+          double y1 = double(j + 1) / double(buffer_height);
+
+          // Get the adaptively supersampled color.
+          glm::dvec3 color = sampleRecursive(sampleRecursive, x0, y0, x1, y1, 0);
+
+          // Write the color to the buffer.
+          unsigned char *pixel = buffer.data() + (i + j * buffer_width) * 3;
+          pixel[0] = static_cast<unsigned char>(255.0 * glm::clamp(color[0], 0.0, 1.0));
+          pixel[1] = static_cast<unsigned char>(255.0 * glm::clamp(color[1], 0.0, 1.0));
+          pixel[2] = static_cast<unsigned char>(255.0 * glm::clamp(color[2], 0.0, 1.0));
+      }
+  }
+  return 0;
+}
+
+
+
 bool RayTracer::checkRender()
 {
   // YOUR CODE HERE
