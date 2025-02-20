@@ -220,7 +220,7 @@ void GraphicalUI::cb_aaCheckButton(Fl_Widget *o, void *) {
   }
 }
 
-void GraphicalUI::cb_adaptiveAACheckButton(Fl_Widget* o, void *)
+void GraphicalUI::cb_adaptiveAACheckButton(Fl_Widget* o, void *) //just added this method
 {
 	pUI = (GraphicalUI *)(o->user_data());
 	pUI->m_adaptive = (((Fl_Check_Button*)o)->value() == 1);
@@ -305,14 +305,14 @@ void GraphicalUI::cb_render(Fl_Widget *o, void *) {
     print(buffer, "Time: %.2f sec, Rays: %u, Aa: none", t_trace, imageRays);
     pUI->m_traceGlWindow->label(buffer);
     pUI->m_traceGlWindow->refresh();
-    if ((pUI->aaSwitch() || pUI->adaptiveSwitch()) && !stopTrace) {
+    if ((pUI->aaSwitch() || pUI->adaptiveSwitch()) && !stopTrace) { //just added
       clock_t aaStart, aaTime;
       auto t_aaStart = std::chrono::high_resolution_clock::now();
       auto t_total =
           std::chrono::duration<double, std::ratio<1>>(t_now - t_start).count();
       aaStart = now = prev = clock();
-      int aaPixels = 0;
-      if(pUI->aaSwitch())
+      int aaPixels = 0; //just added
+      if(pUI->aaSwitch()) //just added the stuff right here
         aaPixels = pUI->raytracer->aaImage();
       else
         aaPixels = pUI->raytracer->adaptiveAntialiasImage();
@@ -595,7 +595,7 @@ GraphicalUI::GraphicalUI() : refreshInterval(10) {
   m_aaThreshSlider->value(m_nAaThreshold);
   m_aaThreshSlider->align(FL_ALIGN_RIGHT);
   m_aaThreshSlider->callback(cb_aaThresholdSlides);
-  if (!(m_antiAlias || m_adaptive)) m_aaThreshSlider->deactivate();
+  if (!(m_antiAlias || m_adaptive)) m_aaThreshSlider->deactivate(); //just added
 
   // set up antialias checkbox
   m_aaCheckButton = new Fl_Check_Button(10, 221, 75, 20, "Antialias");
@@ -604,7 +604,7 @@ GraphicalUI::GraphicalUI() : refreshInterval(10) {
   m_aaCheckButton->value(m_antiAlias);
 
 
-  m_adaptiveAACheckButton = new Fl_Check_Button(140, 419, 80, 20, "Adaptive Antialias");
+  m_adaptiveAACheckButton = new Fl_Check_Button(140, 419, 80, 20, "Adaptive Antialias"); //this block just added
 	m_adaptiveAACheckButton->user_data((void*)(this));
 	m_adaptiveAACheckButton->callback(cb_adaptiveAACheckButton);
 	m_adaptiveAACheckButton->value(m_adaptive);

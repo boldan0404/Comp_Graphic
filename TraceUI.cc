@@ -51,7 +51,7 @@ void TraceUI::loadFromJson(const char *file) {
   load(json, "leaf_size", m_nLeafSize);
   load(json, "filter_width", m_nFilterWidth);
   load(json, "anti_alias", m_antiAlias);
-  load(json, "adaptive_anti_aliasing", m_adaptive);
+  load(json, "adaptive_anti_aliasing", m_adaptive); // just added
   load(json, "kdtree", m_kdTree);
   load(json, "shadows", m_shadows);
   load(json, "smoothshade", m_smoothshade);

@@ -525,7 +525,7 @@ int RayTracer::aaImage()
 // - trace(double x, double y): a method that returns a glm::dvec3 color
 // - aaThresh: a threshold (either a member variable or defined constant)
 // Here, we use a maximum recursion depth of 5.
-
+// just added
 int RayTracer::adaptiveAntialiasImage() {
   std::cout << "doing stuff" << std::endl;  // Internal recursive lambda for adaptive sampling.
   auto sampleRecursive = [this](auto &self, double x0, double y0, double x1, double y1, int depth) -> glm::dvec3 {

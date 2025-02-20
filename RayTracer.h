@@ -40,7 +40,7 @@ public:
 
   void traceImage(int w, int h);
   int aaImage();
-  int RayTracer::adaptiveAntialiasImage();
+  int RayTracer::adaptiveAntialiasImage(); //just added
 
   bool checkRender();
   void waitRender();

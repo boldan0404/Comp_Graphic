@@ -42,7 +42,7 @@ public:
   int getFilterWidth() const { return m_nFilterWidth; }
   int getThreads() const { return m_threads; }
   bool aaSwitch() const { return m_antiAlias; }
-  bool adaptiveSwitch() const { return m_adaptive; }
+  bool adaptiveSwitch() const { return m_adaptive; } // just added
   bool kdSwitch() const { return m_kdTree; }
   bool shadowSw() const { return m_shadows; }
   bool smShadSw() const { return m_smoothshade; }
@@ -111,7 +111,7 @@ protected:
   // reasons.
   bool m_displayDebuggingInfo = false;
   bool m_antiAlias = false;    // Is antialiasing on?
-  bool m_adaptive = false;
+  bool m_adaptive = false;    // just added
   bool m_kdTree = true;        // use kd-tree?
   bool m_shadows = true;       // compute shadows?
   bool m_smoothshade = true;   // turn on/off smoothshading?
